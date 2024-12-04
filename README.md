@@ -22,3 +22,11 @@ source venv/bin/activate
 ```
 pip3 install -r requirements.txt
 ```
+
+## Files
+
+lcd = 'local data'
+plt = 'plots'
+out = 'output'
+src = 'source code'
+venv = 'python virtual environment'
