@@ -62,14 +62,26 @@ hex_to_binary_dict = {
     "f" : "1111",
 }
 
+loc_path = sys.argv[2]
+
+# =========================================================
+# Function to split path
+# =========================================================
+def split_to_loc(csv_path, loc_path=loc_path):
+    file     = csv_path.split('/')[-1]
+    fin_path = f'{loc_path}/{file}'
+    return fin_path
 
 # =========================================================
 # Function to print and save output information.
 # =========================================================
-def prtsv(string):
+def prtsv(string, on=False):
     global msg
     msg.write("%s\n" % string)
-    print(string)
+    if on==True:
+        print(string)
+    else:
+        pass
 
 
 # =========================================================
@@ -79,8 +91,10 @@ def prtsv(string):
 def read_8bit_digital_data(buffer_size, x_origin, x_increment, label, segment_index):
     if segment_index == 0:
         csv_output_file = re.sub(r"\.bin", "_%s.csv" % label, sys.argv[1])
+        csv_output_file = split_to_loc(csv_output_file)
     else:
         csv_output_file = re.sub(r"\.bin", "_segment-%d_%s.csv" % (segment_index, label), sys.argv[1])
+        csv_output_file = split_to_loc(csv_output_file)
     csv = open(csv_output_file, "w")
 
     # prtsv("---------- Digital Data ----------")
@@ -109,8 +123,10 @@ def read_8bit_digital_data(buffer_size, x_origin, x_increment, label, segment_in
 def read_32bit_float_data(buffer_size, bytes_per_point, x_origin, x_increment, label, segment_index):
     if segment_index == 0:
         csv_output_file = re.sub(r"\.bin", "_%s.csv" % label, sys.argv[1])
+        csv_output_file = split_to_loc(csv_output_file)
     else:
         csv_output_file = re.sub(r"\.bin", "_segment-%d_%s.csv" % (segment_index, label), sys.argv[1])
+        csv_output_file = split_to_loc(csv_output_file)
     csv = open(csv_output_file, "w")
 
     # prtsv("---------- Voltage Data ----------")
@@ -245,14 +261,15 @@ def read_waveform():
 # Main Program
 # =========================================================
 
-if len(sys.argv) != 2:
-    sys.stderr.write("Usage: python %s <binary_data_file>\n" % sys.argv[0])
+if len(sys.argv) != 3:
+    sys.stderr.write("Usage: python %s <binary_data_file> <path_to_save>\n" % sys.argv[0])
     sys.exit()
 
 # ---------------------------------------------------------
 # Open message output file.
 # ---------------------------------------------------------
 msg_output_file = re.sub(r"\.bin", "_info.txt", sys.argv[1])
+msg_output_file = split_to_loc(msg_output_file)
 msg = open(msg_output_file, "w")
 
 # ---------------------------------------------------------
