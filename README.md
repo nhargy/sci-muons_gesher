@@ -7,10 +7,24 @@
 git clone https://github.com/nhargy/sci-muons_gesher.git
 ```
 
-2. Setup local project filestructure and python virtual environment
+2. Open struct.sh inside a text editor. Scroll down to the following lines:
 ```
-chmod +x filestruct.sh
-./filestruct.sh
+# ==========================================================
+# Employing IF_bin_to_csv.py to convert binary files to csv
+# ==========================================================
+
+# Local path to Gesher_Muons data folder (modify for your local machine)
+DATA_PATH=/home/hargy/Science/DataBox
+
+# Local path to sci-mions_gesher repo (modify for your local machine)
+REPO_PATH=/home/hargy/Science/Projects
+```
+DATA_PATH should point to where the 'Gesher_Muons' data folder is saved locally, and REPO_PATH should point to where this repo is cloned locally.
+
+2. Setup local project structure, local data conversions and python virtual environment
+```
+chmod +x struct.sh
+./struct.sh
 ```
 
 3. Activate virtual environment
