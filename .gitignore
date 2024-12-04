@@ -1,3 +1,4 @@
 # Exclude everything except /src/ directoty
 /*
 !/src
+!/docs
