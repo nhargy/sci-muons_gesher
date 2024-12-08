@@ -1,4 +1,5 @@
 import numpy as np
+import csv
 
 def get_timestamps(filepath, segments = 1000):
     """
@@ -40,5 +41,30 @@ def get_timestamps(filepath, segments = 1000):
 
     except Exception as e:
         print("Error in 'get_timestamps'")
+        print(e)
+        return None
+
+
+def get_waveform(csvfile):
+    """
+    Extracts the x,y data from the csv waveform file.
+
+    Args:
+        csvfile (str)  : path to csv file containing waveform
+                         example filename: scope-1-run3_segment-1_1.csv
+
+    Returns:
+        data (ndarray) : two dimensional numpy array containt x and y
+                         subarrays
+    """
+    try:
+        with open(csvfile, 'r') as f:
+            reader = csv.reader(f)
+            data   = np.array(list(reader), dtype=float)
+            data   = data.T
+        return data
+
+    except Exception as e:
+        print("Error in get_waveform")
         print(e)
         return None
