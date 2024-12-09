@@ -48,13 +48,17 @@ def get_timestamps(filepath, segments = 1000):
         return None
 
 
-def get_waveform(csvfile, xignore=True, negative=True):
+def get_waveform(csvfile, xignore=True, negative=True, xconv=1, yconv=1):
     """
     Extracts the x,y data from the csv waveform file.
 
     Args:
-        csvfile (str)  : path to csv file containing waveform
-                         example filename: scope-1-run3_segment-1_1.csv
+        csvfile (str)   : path to csv file containing waveform
+                          example filename: scope-1-run3_segment-1_1.csv
+        xignore (bool)  :
+        negative (bool) :
+        xconv (float)   :
+        yconv (float)   :
 
     Returns:
         data (ndarray) : two dimensional numpy array containt x and y
@@ -65,6 +69,9 @@ def get_waveform(csvfile, xignore=True, negative=True):
             reader = csv.reader(f)
             data   = np.array(list(reader), dtype=float)
             data   = data.T
+
+            data[0] = data[0] * xconv
+            data[1] = data[1] * yconv
 
             if negative == True:
                 data[1] = data[1]*(-1)
@@ -80,14 +87,65 @@ def get_waveform(csvfile, xignore=True, negative=True):
         return None
 
 
-def topdf(Pdf):
+def zero_baseline(wf, cut=0.25):
     """
-    <Description>
+
+    Args:
+        
+    Returns:
+
+    """
+    cut_length = int(len(wf)*cut)
+
+    # convert to ndarray if not already
+    wf = np.array(wf)
+
+    # take the portion of the wavelength most likely to not contain any peaks
+    bl = wf[0:cut_length]
+
+    # calculate its mean
+    bl_mean = np.nanmean(bl)
+
+    # subtract this mean from the entire waveform to zero its baseline
+    wf = wf - bl_mean
+
+    return wf
+    
+
+def get_ingress_idx(wf, thresh=5, cut=0.25):
+    """
 
     Args:
 
     Returns:
+
     """
-    pass
+    cut_length = int(len(wf)*cut)
+
+    # convert to ndarray if not already
+    wf = np.array(wf)
+
+    # take the portion of the wavelength most likely not to contain any peaks
+    bl = wf[0:cut_length]
+
+    # calculate its mean and standard deviation
+    bl_mean = np.nanmean(bl)
+    bl_std  = np.nanstd(bl)
+
+    # get the voltage threshold above which to calculate index
+    thresh_v = bl_mean + thresh*bl_std
+
+    # loop across waveform from the left to get ingress index
+    ingress = np.nan
+    for idx, elm in enumerate(wf):
+        if elm > thresh_v:
+            ingress = idx
+            break
+
+    return idx
+
+
+
+
     
 

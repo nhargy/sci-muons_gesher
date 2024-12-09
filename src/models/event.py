@@ -41,12 +41,13 @@ class Event:
 
     def get_data(self):
         """
-        <Description>
+        Extracts the waveforms and time data from a given triggered event, or segment.
+        The function adds self.data and self.time attributes to the event object.
 
         Args:
-
+            None
         Returns:
-
+            None
         """
         data  = [] # store waveform matrix
         times = [] # store time axis for each scope as they can be different
@@ -61,7 +62,7 @@ class Event:
                     wf      = [np.nan]
                 data.append(wf)
 
-            wf = fn.get_waveform(csvfile, xignore=False)
+            wf = fn.get_waveform(csvfile, xignore=False, xconv=1e9)
             t  = wf[0]
             times.append(t)
 

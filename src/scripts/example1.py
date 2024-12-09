@@ -43,18 +43,19 @@ pdf_path      = os.path.join(out_path, 'example1.pdf')
 pdf           = PdfPages(pdf_path)
 
 # Define path to specific run
-dir_path      = 'VS1/Run5'
+dir_path      = 'TLV1/Run7'
 vs1_run4_path = os.path.join(lcd_path, dir_path)
 
 # Define scope_config
-scope_config  = [('scope-1-run5', 4),('scope-2-run5', 4)]
+scope_config  = [('scope-1-run7', 4),('scope-2-run7', 4)]
 """
 scope_config: each tuple specifies the scope name as given in the saved csv files
               and the corresponding number of active channels. 
 """
 
-# Choose segment
-segment       = 100
+# Choose segment, or define it as system input
+#segment       = 100
+segment       = sys.argv[1]
 
 # Define event object
 myevent       = Event(vs1_run4_path, segment, scope_config)
@@ -66,10 +67,10 @@ times  = myevent.times    # the x-axis time values, one array for each scope
 
 # Plot
 fig, ax = plt.subplots(figsize=(6,4))
-ax.plot(times[0], mydata[0], label='Ch1')
-ax.plot(times[0], mydata[1], label='Ch2')
+ax.plot(times[0], mydata[0], label='Channel 1')
+ax.plot(times[0], mydata[1], label='Channel 2')
 ax.set_title(f'{dir_path}; Segment {segment}')
-ax.set_xlabel('Time [seconds]')
+ax.set_xlabel('Time [ns]')
 ax.set_ylabel('Volts')
 fig.legend()
 
@@ -80,5 +81,5 @@ fig.tight_layout()
 pdf.savefig()
 plt.close()
 
-# End script in closing pdf object so it can refresh
+# End entire script in closing pdf object so it can refresh
 pdf.close()
