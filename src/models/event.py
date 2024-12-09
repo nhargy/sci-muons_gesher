@@ -5,20 +5,18 @@ import numpy as np
 # Get current working directory
 cwd        = os.getcwd()
 
-# Relative path of sci-muons_gesher/src
-repo_path  = cwd.split('/src')[0]
+# Get relative path sci-muon_gesher/src
+src_path  = cwd.split('/models')[0]
 
-# Path to utils
-utils_path = os.path.join(repo_path, 'src/utils')
+# Add src path to system path
+sys.path.insert(0, src_path)
 
-# Add utils path to system
-sys.path.insert(0, utils_path)
-
+# Import package modules
 try:
-    import functions as fn
+    import utils.functions as fn
 except:
-    print('Failure to import utils/functions. Check whether system path is correct:')
-    print(utils_path)
+    print('Failure to import package modules. Check whether system path is correct:')
+    print(src_path)
 
 
 class Event:
