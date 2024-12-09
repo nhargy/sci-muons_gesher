@@ -1,5 +1,8 @@
 import numpy as np
 import csv
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+
 
 def get_timestamps(filepath, segments = 1000):
     """
@@ -69,9 +72,22 @@ def get_waveform(csvfile, xignore=True, negative=True):
             if xignore == True:
                 data = data[1]
 
-        return None
+        return data
 
     except Exception as e:
         print("Error in get_waveform")
         print(e)
         return None
+
+
+def topdf(Pdf):
+    """
+    <Description>
+
+    Args:
+
+    Returns:
+    """
+    pass
+    
+

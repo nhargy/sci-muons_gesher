@@ -48,7 +48,8 @@ class Event:
         Returns:
 
         """
-        data = []
+        data  = [] # store waveform matrix
+        times = [] # store time axis for each scope as they can be different
         for scope in self.scope_config:
             for ch in range(1, scope[1]+1):
                 try:
@@ -60,7 +61,13 @@ class Event:
                     wf      = [np.nan]
                 data.append(wf)
 
-        #data      = np.array(data)
-        self.data = data
+            wf = fn.get_waveform(csvfile, xignore=False)
+            t  = wf[0]
+            times.append(t)
 
-        return data
+        self.data  = data
+        self.times = times
+
+        return None
+
+
