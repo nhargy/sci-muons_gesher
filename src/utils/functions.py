@@ -45,7 +45,7 @@ def get_timestamps(filepath, segments = 1000):
         return None
 
 
-def get_waveform(csvfile):
+def get_waveform(csvfile, xignore=True, negative=True):
     """
     Extracts the x,y data from the csv waveform file.
 
@@ -62,7 +62,14 @@ def get_waveform(csvfile):
             reader = csv.reader(f)
             data   = np.array(list(reader), dtype=float)
             data   = data.T
-        return data
+
+            if negative == True:
+                data[1] = data[1]*(-1)
+
+            if xignore == True:
+                data = data[1]
+
+        return None
 
     except Exception as e:
         print("Error in get_waveform")
