@@ -55,7 +55,7 @@ class Event:
             for ch in range(1, scope[1]+1):
                 try:
                     csvfile = os.path.join(self.dirpath, f'{scope[0]}_segment-{self.segment}_{ch}.csv')
-                    wf      = fn.get_waveform(csvfile)
+                    wf      = fn.get_waveform(csvfile, yconv=1e3)
                 except Exception as e:
                     print('Failed to get waveform from csv file. Error:')
                     print(e)

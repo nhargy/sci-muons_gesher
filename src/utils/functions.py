@@ -2,6 +2,7 @@ import numpy as np
 import csv
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+import scipy
 
 
 def get_timestamps(filepath, segments = 1000):
@@ -87,30 +88,61 @@ def get_waveform(csvfile, xignore=True, negative=True, xconv=1, yconv=1):
         return None
 
 
-def zero_baseline(wf, cut=0.25):
+def find_baseline(wf_input, width=6, distance=12, prominence=12, roundto = 2, sigma=0.75):
     """
 
-    Args:
-        
-    Returns:
-
     """
-    cut_length = int(len(wf)*cut)
+    # Smooth waveform
+    wf = scipy.ndimage.gaussian_filter1d(wf_input, sigma=sigma)
 
-    # convert to ndarray if not already
-    wf = np.array(wf)
+    # Prepare mask array of zeros
+    mask = np.zeros(len(wf))
 
-    # take the portion of the wavelength most likely to not contain any peaks
-    bl = wf[0:cut_length]
+    # Already mask waveform after mid-point, which on the scope is t=0,
+    # and before an index close to the start of the waveform, to avoid
+    # missing semi-peaks.
+    mask[int(len(wf)/2)-25:] = 1
+    mask[len(wf) - 40:len(wf)] = 1
+    mask[0:40] = 1
 
-    # calculate its mean
-    bl_mean = np.nanmean(bl)
-
-    # subtract this mean from the entire waveform to zero its baseline
-    wf = wf - bl_mean
-
-    return wf
+    # Find peaks
+    idxs, dicts = scipy.signal.find_peaks(wf, width=width, distance=distance, prominence=prominence)
     
+    # Iterate over found peaks and mask accordingly
+    for num, idx in enumerate(idxs):
+        lb    = dicts['left_bases'][num]
+        rb    = dicts['right_bases'][num]
+        width = dicts['widths'][num]
+
+        # width factor
+        c = 1.5
+        w = int(c*width)
+
+        # Get the left index of peak boundary
+        if idx < w:
+            left_idx = 0
+        else:
+            left_idx = idx - w
+
+        # Get the right index of peak boundary
+        try:
+            test = wf[idx + w]
+            right_idx = idx + w
+        except:
+            right_idx = len(wf)
+
+        # Mask the peak region
+        mask[left_idx:right_idx] = 1
+
+    # Perform masking operation
+    baseline_wf = np.ma.array(wf, mask=mask)
+    
+    # Calculate baseline mean and standard deviation
+    baseline_mean = np.round(baseline_wf.mean(),roundto)
+    baseline_std  = np.round(baseline_wf.std(),roundto)
+    
+    return baseline_mean, baseline_std, wf, mask
+
 
 def get_ingress_idx(wf, thresh=5, cut=0.25):
     """

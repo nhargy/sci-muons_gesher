@@ -18,9 +18,10 @@ sys.path.insert(0, src_path)
 try:
     import utils.functions as fn
     from models.event import Event
-except:
+except Exception as e:
     print("Failed to import module packages. Check whether relative path to /src is correct:")
     print(src_path)
+    print(e)
 
 # Define important paths
 repo_path = cwd.split('/src')[0]
@@ -44,11 +45,11 @@ pdf_path      = os.path.join(out_path, 'example2.pdf')
 pdf           = PdfPages(pdf_path)
 
 # Define path to specific run
-dir_path      = 'Calib/Position'
+dir_path      = 'VS1/Run3'
 run_path = os.path.join(lcd_path, dir_path)
 
 # Define scope_config
-scope_config  = [('dt-run15', 4)] #,('scope-2-run7', 4)]
+scope_config  = [('scope-1-run3', 4) ,('scope-2-run3', 4)]
 """
 scope_config: each tuple specifies the scope name as given in the saved csv files
               and the corresponding number of active channels. 
@@ -75,54 +76,30 @@ t   = times[0]
 wf1 = mydata[2]
 wf2 = mydata[3]
 
-min_idx = 625 # t=0ns
-max_idx = 850 # t=90ns
+bl_mean1, bl_std1, wf1_smooth, mask1 = fn.find_baseline(wf1)
+bl_mean2, bl_std2, wf2_smooth, mask2 = fn.find_baseline(wf2)
 
-# windowed
-wf1_window = wf1[min_idx:max_idx]
-wf2_window = wf2[min_idx:max_idx]
+wf1_smooth = wf1_smooth - bl_mean1
+wf2_smooth = wf2_smooth - bl_mean2
 
-peaks1 = scipy.signal.find_peaks(wf1_window, height = 0.2, distance = 20, width = 4)[0] + min_idx
-peaks2 = scipy.signal.find_peaks(wf2_window, height = 0.2, distance = 20, width = 4)[0] + min_idx
+wf1_masked = np.ma.array(wf1_smooth, mask=mask1)
+wf2_masked = np.ma.array(wf2_smooth, mask=mask2)
 
 # Plot
 fig, ax = plt.subplots(figsize=(7,4))
 
-try:
-    peak1 = peaks1[0]
-    idx = fn.get_ingress_idx(wf1_window) + min_idx
-    ax.axhline(wf1[idx], color = 'green', alpha = 0.3, linestyle = '--')
-    ingress_time1 = t[idx]
-    ax.axvline(t[idx], color = 'green', alpha = 0.3, linestyle = '--')
-    plt.scatter(t[idx], wf1[idx], s=30, color = 'green', alpha=0.9, label = 'Ingress')
-    #ax.axvline(t[peak1], color='skyblue', label = 'Peak 1')
-    ax.plot(t, wf1, label='Channel 1')
+ax.plot(t,wf1_smooth, label=rf'Ch1')  #: {bl_mean1}$\pm${bl_std1}')
+ax.plot(t,wf2_smooth, label=rf'Ch2')  #: {bl_mean2}$\pm${bl_std2}')
 
-except:
-    ax.plot(t, wf1, label = 'Channel 1')
-
-try:
-    peak2 = peaks2[0]
-    idx = fn.get_ingress_idx(wf2_window) + min_idx
-    ingress_time2 = t[idx]
-    ax.axhline(wf2[idx], color = 'green', alpha = 0.3, linestyle = '--')
-    ax.axvline(t[idx], color = 'green', alpha = 0.3, linestyle = '--')
-    plt.scatter(t[idx], wf2[idx], s=30, color = 'lawngreen', alpha=0.9, label = 'Ingress 2')
-    #ax.axvline(t[peak2], color='orange', label = 'Peak 2')
-    ax.plot(t, wf2, label='Channel 2')
-
-except:
-    ax.plot(t, wf2, label = 'Channel 2')
-
-try:
-    dt = np.round(ingress_time2 - ingress_time1,2)
-except:
-    dt = None
-
-ax.set_title(f'{dir_path}; Segment {segment}, dt: {dt}ns')
+ax.plot(t,wf1_masked, color='green')
+ax.plot(t,wf2_masked, color='lawngreen')
+ax.set_title(f'{dir_path}; Segment {segment}')
 ax.set_xlabel('Time [ns]')
-ax.set_ylabel('Volts')
-#ax.set_xlim(0,100)
+ax.set_ylabel('Voltage [mV]')
+ax.axhline(0, linewidth = 5, color = 'grey', alpha = 0.35)
+
+#ax.set_ylim(-20,20)
+
 fig.legend()
 
 # Format for pdf view
@@ -135,12 +112,13 @@ plt.close()
 # ==================
 # Get ingress index
 # ==================
+"""
 wf = myevent.data[2]
 mask = np.zeros(len(wf))
-idxs, dicts = scipy.signal.find_peaks(wf, height=0.01, width=16, distance=16)
+idxs, dicts = scipy.signal.find_peaks(wf, width=5, distance=8, prominence=0.02)
 
 fig, ax = plt.subplots(figsize=(7,4))
-ax.plot(t, wf, color='red', label = 'Peak Region')
+ax.plot(t, wf, color='red', label = 'Masked')
 
 #ax.set_ylim(-0.1,0.2)
 
@@ -149,7 +127,7 @@ for num, idx in enumerate(idxs):
     rb = dicts['right_bases'][num]
     width = dicts['widths'][num]
 
-    c = 2.2
+    c = 1.5
 
     if idx < int(c*width):
         left = t[0]
@@ -169,16 +147,19 @@ for num, idx in enumerate(idxs):
 
     mask[left_idx:right_idx]=1
 
+mask[int((len(t)/2)-1):]=1
+
 bl_wf = np.ma.array(wf, mask=mask)
+bl_mean = np.round(np.nanmean(bl_wf),5)
 
-ax.plot(t, bl_wf, color='green', label='Baseline Region')
+ax.plot(t, bl_wf, color='green', label='Baseline')
 
-ax.set_title(f'Detected Peaks: {len(idxs)}')
+ax.set_title(f'Detected Peaks: {len(idxs)}, Baseline Mean: {bl_mean}V')
 fig.legend()
 fig.tight_layout()
 pdf.savefig()
 plt.close()
 
-
+"""
 # End entire script in closing pdf object so it can refresh
 pdf.close()
