@@ -114,7 +114,10 @@ try:
 except:
     ax.plot(t, wf2, label = 'Channel 2')
 
-dt = np.round(ingress_time2 - ingress_time1,2)
+try:
+    dt = np.round(ingress_time2 - ingress_time1,2)
+except:
+    dt = None
 
 ax.set_title(f'{dir_path}; Segment {segment}, dt: {dt}ns')
 ax.set_xlabel('Time [ns]')
@@ -133,19 +136,49 @@ plt.close()
 # Get ingress index
 # ==================
 wf = myevent.data[2]
-ingress_idx = fn.get_ingress_idx(wf)
+mask = np.zeros(len(wf))
+idxs, dicts = scipy.signal.find_peaks(wf, height=0.01, width=16, distance=16)
 
-"""
-fig, ax = plt.subplots(figsize = (6,4))
-ax.plot(times[0], wf)
-ax.axvline(times[0][ingress_idx], label = 'Ingress', color = 'green', alpha = 0.5)
-ax.axhline(wf[ingress_idx], color = 'green', alpha = 0.5)
-ax.set_xlim(-80,80)
+fig, ax = plt.subplots(figsize=(7,4))
+ax.plot(t, wf, color='red', label = 'Peak Region')
+
+#ax.set_ylim(-0.1,0.2)
+
+for num, idx in enumerate(idxs):
+    lb = dicts['left_bases'][num]
+    rb = dicts['right_bases'][num]
+    width = dicts['widths'][num]
+
+    c = 2.2
+
+    if idx < int(c*width):
+        left = t[0]
+        left_idx = 0
+    else:
+        left = int(t[idx - int(c*width)])
+        left_idx = idx - int(c*width)
+    try:
+        right = int(t[idx + int(c*width)])
+        right_idx = idx + int(c*width)
+    except:
+        right = int(t[-1])
+        right_idx = -1
+
+    ax.axvline(t[idx], color = 'grey', linestyle = '--')
+    ax.axvspan(left, right, alpha = 0.2, color = 'red')
+
+    mask[left_idx:right_idx]=1
+
+bl_wf = np.ma.array(wf, mask=mask)
+
+ax.plot(t, bl_wf, color='green', label='Baseline Region')
+
+ax.set_title(f'Detected Peaks: {len(idxs)}')
 fig.legend()
 fig.tight_layout()
 pdf.savefig()
 plt.close()
-"""
+
 
 # End entire script in closing pdf object so it can refresh
 pdf.close()
