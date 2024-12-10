@@ -1,5 +1,7 @@
 # sci-muons_gesher
 
+**A Weizmann Institute of Science Project**
+
 ## Getting Started
 
 1. Clone the repository locally
