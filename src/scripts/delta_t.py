@@ -45,10 +45,10 @@ ROI=(640,880)
 sigma=2
 
 """
-method options: 'peak', 'fwhm', 'tenperc'
+method options: 'peak', 'fwhm'
 """
 
-def get_dt(scope_config, method = 'peak'):
+def get_dt(scope_config, method = 'fwhm'):
 
     seg = 1
     dt_arr = []
@@ -88,83 +88,113 @@ def get_dt(scope_config, method = 'peak'):
 
     return dt_arr
 
-method = 'fwhm'
-"""
-dt1 = get_dt([('dt-run1',4)], method = method)
-dt2 = get_dt([('dt-run2',4)], method = method)
-dt3 = get_dt([('dt-run3',4)], method = method)
-L   = dt1+dt2+dt3
-"""
-dt4 = get_dt([('dt-run4',4)])
-dt5 = get_dt([('dt-run5',4)])
-CL  = dt4+dt5
-"""
-
-dt7 = get_dt([('dt-run7',4)], method = method)
-dt8 = get_dt([('dt-run8',4)], method = method)
-dt9 = get_dt([('dt-run9',4)], method = method)
-C   = dt7+dt8+dt9
-
-
-dt10 = get_dt([('dt-run10',4)], method = method)
-dt11 = get_dt([('dt-run11',4)], method = method)
-dt12 = get_dt([('dt-run12',4)], method = method)
-CR   = dt10+dt11+dt12
-
-dt13 = get_dt([('dt-run1',4)], method = method)
-dt14 = get_dt([('dt-run2',4)], method = method)
-dt15 = get_dt([('dt-run3',4)], method = method)
-R    = dt13+dt14+dt15
-
-fig, ax = plt.subplots(figsize=(5,2.5))
-
-alpha=0.6
-bins=np.arange(-21,21,2)
-ax.hist(L, bins=bins, label='L', alpha=alpha)
-ax.hist(CL, bins=bins, label='CL', alpha=alpha)
-ax.hist(C, bins=bins, label='C', alpha=alpha)
-ax.hist(CR, bins=bins, label='CR', alpha=alpha)
-ax.hist(R, bins=bins, label='R', alpha=alpha)
-
-ax.legend()
-pdf.savefig()
-plt.close()
-"""
-
 def gaussian(x, A, m, s):
     return A * np.exp(-(((x-m)**2)/(s**2)))
 
 def linear(x, m, c):
     return m*x + c
 
-fig, ax = plt.subplots(figsize=(5,2.5))
+def plot_dist(ax, data, p0, label = None):
+    hist = np.histogram(data, bins=bins)
+    mid_points = hist[1][:-1] + np.diff(hist[1])/2
 
-bins = np.arange(-21,21,2)
-hist = np.histogram(CL, bins=bins)
-mid_points = hist[1][:-1] + np.diff(hist[1])/2
+    x,y = mid_points, hist[0]
+    popt, pcov = scipy.optimize.curve_fit(gaussian, x, y, p0 = p0)
 
-x,y = mid_points, hist[0]
-popt, pcov = scipy.optimize.curve_fit(gaussian, x, y, p0 = [100, -5, 3])
-print(popt)
+    x_vals = np.linspace(-15,15,200)
+    #ax.scatter(x, y, s=1)
+    ax.plot(x_vals, gaussian(x_vals, *popt), label=label)
 
-x_vals = np.linspace(-21,21,1000)
-ax.scatter(x, y)
-ax.plot(x_vals, gaussian(x_vals, *popt))
-ax.set_title(rf'$\Delta t = ${np.round(popt[1],2)} $\pm$ {np.round(popt[2],2)}ns')
+    return popt
+
+
+method = 'fwhm'
+bins   = np.arange(-21,21,2)
+
+m_arr = []
+s_arr = []
+
+fig, ax = plt.subplots(figsize=(5,3))
+
+dt1 = get_dt([('dt-run1',4)], method = method)
+dt2 = get_dt([('dt-run2',4)], method = method)
+dt3 = get_dt([('dt-run3',4)], method = method)
+L   = dt1+dt2+dt3
+popt = plot_dist(ax, L, p0=[100, -5, 2], label = 'L')
+m_arr.append(popt[1])
+s_arr.append(popt[2])
+
+dt4 = get_dt([('dt-run4',4)])
+dt5 = get_dt([('dt-run5',4)])
+CL  = dt4+dt5
+popt = plot_dist(ax, CL, p0=[100, -2, 2], label = 'CL')
+m_arr.append(popt[1])
+s_arr.append(popt[2])
+
+dt7 = get_dt([('dt-run7',4)], method = method)
+dt8 = get_dt([('dt-run8',4)], method = method)
+dt9 = get_dt([('dt-run9',4)], method = method)
+C   = dt7+dt8+dt9
+popt = plot_dist(ax, C, p0=[100, 0, 2], label = 'C')
+m_arr.append(popt[1])
+s_arr.append(popt[2])
+
+dt10 = get_dt([('dt-run10',4)], method = method)
+dt11 = get_dt([('dt-run11',4)], method = method)
+dt12 = get_dt([('dt-run12',4)], method = method)
+CR   = dt10+dt11+dt12
+popt = plot_dist(ax, CR, p0=[100, 2.5, 2], label = 'CR')
+m_arr.append(popt[1])
+s_arr.append(popt[2])
+
+dt13 = get_dt([('dt-run13',4)], method = method)
+dt14 = get_dt([('dt-run14',4)], method = method)
+dt15 = get_dt([('dt-run15',4)], method = method)
+R    = dt13+dt14+dt15
+popt = plot_dist(ax, R, p0=[100, 5, 2], label = 'R')
+m_arr.append(popt[1])
+s_arr.append(popt[2])
+
+
+ax.set_xlabel(r"$\Delta t$ [ns]")
+ax.set_ylabel("Frequency")
+ax.set_title(r"Distribution of $\Delta t$ as a Function of Position")
+
+ax.grid('on', alpha = 0.5)
+
+
+fig.tight_layout()
+
+ax.legend()
 pdf.savefig()
+
+# save figure to out
+plt.savefig(os.path.join(plt_path, 'dt_dist.png'), dpi=350)
+
 plt.close()
 
+
 pos = [24, 48, 72, 96, 120]
-dts = [-7.17, -2.74, 0.15, 3.43, 6.99]
-sigs = [2.35, 4.9, 2.51, 2.86, 2.78]
+#dts = [-7.17, -2.74, 0.15, 3.43, 6.99]
+#sigs = [2.35, 4.9, 2.51, 2.86, 2.78]
 
-fig, ax = plt.subplots(figsize=(5,2.5))
+fig, ax = plt.subplots(figsize=(5,3))
 
-popt, pcov = scipy.optimize.curve_fit(linear, pos, dts, p0 = [1, -10], sigma=sigs)
-plt.errorbar(pos,dts, yerr=sigs, fmt='o', capsize=5)
+popt, pcov = scipy.optimize.curve_fit(linear, pos, m_arr, p0 = [1, -10], sigma=s_arr)
+ax.errorbar(pos,m_arr, yerr=s_arr, fmt='o', capsize=5, label = 'Calibration')
 
 x_vals = np.linspace(0,144, 100)
-plt.plot(x_vals, linear(x_vals, *popt), color = 'skyblue')
+ax.plot(x_vals, linear(x_vals, *popt), color = 'darkblue', label = 'Linear Fit')
+
+ax.set_xlabel('Position Along Plate [cm]')
+ax.set_ylabel(r'$\Delta t$ [ns]')
+ax.set_title(r'Position-$\Delta t$ Conversion')
+
+ax.grid('on', alpha = 0.5)
+
+fig.tight_layout()
+
+plt.savefig(os.path.join(plt_path, 'position-dt_conversion.png'), dpi=350)
 
 pdf.savefig()
 plt.close()
