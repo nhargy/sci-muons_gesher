@@ -88,25 +88,29 @@ def get_waveform(csvfile, xignore=True, negative=True, xconv=1, yconv=1):
         return None
 
 
-def find_baseline(wf_input, width=6, distance=12, prominence=12, roundto = 2, sigma=0.75):
+def find_baseline(wf, width=6, distance=12, prominence=12, roundto = 2, sigma=0.75):
     """
 
+    Args:
+        
+    Returns:
+        
     """
     # Smooth waveform
-    wf = scipy.ndimage.gaussian_filter1d(wf_input, sigma=sigma)
+    wf_smooth = scipy.ndimage.gaussian_filter1d(wf, sigma=sigma)
 
     # Prepare mask array of zeros
-    mask = np.zeros(len(wf))
+    mask = np.zeros(len(wf_smooth))
 
     # Already mask waveform after mid-point, which on the scope is t=0,
     # and before an index close to the start of the waveform, to avoid
     # missing semi-peaks.
-    mask[int(len(wf)/2)-25:] = 1
-    mask[len(wf) - 40:len(wf)] = 1
+    mask[int(len(wf_smooth)/2)-25:] = 1
+    mask[len(wf_smooth) - 40:len(wf_smooth)] = 1
     mask[0:40] = 1
 
     # Find peaks
-    idxs, dicts = scipy.signal.find_peaks(wf, width=width, distance=distance, prominence=prominence)
+    idxs, dicts = scipy.signal.find_peaks(wf_smooth, width=width, distance=distance, prominence=prominence)
     
     # Iterate over found peaks and mask accordingly
     for num, idx in enumerate(idxs):
@@ -135,49 +139,32 @@ def find_baseline(wf_input, width=6, distance=12, prominence=12, roundto = 2, si
         mask[left_idx:right_idx] = 1
 
     # Perform masking operation
-    baseline_wf = np.ma.array(wf, mask=mask)
+    baseline_wf = np.ma.array(wf_smooth, mask=mask)
     
     # Calculate baseline mean and standard deviation
     baseline_mean = np.round(baseline_wf.mean(),roundto)
     baseline_std  = np.round(baseline_wf.std(),roundto)
     
-    return baseline_mean, baseline_std, wf, mask
+    return baseline_mean, baseline_std, wf_smooth, mask
 
 
-def get_ingress_idx(wf, thresh=5, cut=0.25):
-    """
-
-    Args:
-
-    Returns:
-
-    """
-    cut_length = int(len(wf)*cut)
-
-    # convert to ndarray if not already
-    wf = np.array(wf)
-
-    # take the portion of the wavelength most likely not to contain any peaks
-    bl = wf[0:cut_length]
-
-    # calculate its mean and standard deviation
-    bl_mean = np.nanmean(bl)
-    bl_std  = np.nanstd(bl)
-
-    # get the voltage threshold above which to calculate index
-    thresh_v = bl_mean + thresh*bl_std
-
-    # loop across waveform from the left to get ingress index
-    ingress = np.nan
-    for idx, elm in enumerate(wf):
-        if elm > thresh_v:
-            ingress = idx
-            break
-
-    return idx
-
-
-
-
+def find_peak(wf, threshold, ROI, sigma=2, min_val=50):
     
+    # Smooth waveform
+    wf_smooth = scipy.ndimage.gaussian_filter1d(wf, sigma=sigma)
+    wf_cut    = wf_smooth[ROI[0]:ROI[1]]
+    peaks     = scipy.signal.find_peaks(wf_cut, height=threshold, width=6, distance=10, prominence=12)
+    
+    try:
+        peak_idx       = ROI[0] + peaks[0][0]
+        maxval         = wf_smooth[peak_idx]
+        fwhm           = maxval/10
+        if fwhm < min_val:
+            fwhm = min_val
+        egress_idx     = np.where(np.logical_and(wf_cut<fwhm+30, wf_cut>fwhm-30))[0]
+        egress_idx     = ROI[0] + np.min(egress_idx)
+    except:
+        peak_idx       = None
+        egress_idx     = None
 
+    return peak_idx, egress_idx
