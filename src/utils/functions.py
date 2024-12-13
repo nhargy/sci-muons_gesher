@@ -3,7 +3,7 @@ import csv
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import scipy
-
+from scipy import interpolate
 
 def get_timestamps(filepath, segments = 1000):
     """
@@ -82,9 +82,7 @@ def get_waveform(csvfile, xignore=True, negative=True, xconv=1, yconv=1):
 
         return data
 
-    except Exception as e:
-        print("Error in get_waveform")
-        print(e)
+    except Exception:
         return None
 
 
@@ -148,19 +146,79 @@ def find_baseline(wf, width=6, distance=12, prominence=12, roundto = 2, sigma=0.
     return baseline_mean, baseline_std, wf_smooth, mask
 
 
-def find_peak(wf, threshold, ROI, sigma=2, min_val=50):
+def get_first_peak(wf, threshold, ROI, min_val=50, smooth=True, sigma=2):
+    """
+    <description>
+
+    Args:
+        
+    Returns:
+        
+    """
+    if smooth == True:
+        # Smooth waveform
+        wf_sm = scipy.ndimage.gaussian_filter1d(wf, sigma=sigma)
+
+    # Starting and end cuts of Region Of Interest
+    a = int(ROI[0]); b = int(ROI[1])
+
+    # Cut the waveform
+    wf_cut = wf_sm[a:b]
+
+    # Find peaks
+    peaks  = scipy.signal.find_peaks(wf_cut, height=threshold, width=6, distance=10, prominence=12)
+
+    # Extract index and value of first peak
+    try:
+        peak_idx = a + peaks[0][0]
+        peak_val = peaks[1]['peak_heights'][0]
+
+        return peak_idx, peak_val
+
+    except:
+        return None, None
+
+
+def get_risetime(t, wf, peak_idx, fraction=0.12):
+    """
+    <Description>
+
+    Args:
+
+    Returns:
+    """
+    peak_val = wf[peak_idx]
+    rise_val = peak_val * fraction
+
+    # Generate inverse and reversed interpolated function up to peak
+    t_cut    = t[:peak_idx][::-1]
+    wf_cut   = wf[:peak_idx][::-1]
+    f        = interpolate.interp1d(wf_cut, t_cut)
+
+    risetime  = f(rise_val) 
+
+    return risetime
     
+
+    
+
+
+    
+
+
+def find_peak(wf, threshold, ROI, sigma=2, min_val=50, div=8):
+
     # Smooth waveform
     wf_smooth = scipy.ndimage.gaussian_filter1d(wf, sigma=sigma)
     wf_cut    = wf_smooth[ROI[0]:ROI[1]]
-    peaks     = scipy.signal.find_peaks(wf_cut, height=threshold, width=6, distance=10, prominence=12)
-    
+    peaks     = scipy.signal.find_peaks(wf_cut, height=threshold, width=6, distance=10, prominence=12) 
     try:
         peak_idx       = ROI[0] + peaks[0][0]
         maxval         = wf_smooth[peak_idx]
-        fwhm           = maxval/10
+        fwhm           = maxval/div
         if fwhm < min_val:
             fwhm = min_val
+
         egress_idx     = np.where(np.logical_and(wf_cut<fwhm+30, wf_cut>fwhm-30))[0]
         egress_idx     = ROI[0] + np.min(egress_idx)
     except:

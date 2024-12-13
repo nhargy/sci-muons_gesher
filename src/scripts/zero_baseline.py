@@ -36,11 +36,11 @@ pdf_path = os.path.join(out_path, 'zero_baseline.pdf')
 pdf      = PdfPages(pdf_path)
 
 # Define path to specific run
-dir_path = 'Calib/Position'
+dir_path = 'TLV1/Run11'
 run_path = os.path.join(lcd_path, dir_path)
 
 # Define scope config
-scope_config = [('dt-run8',4)] #,('scope-2-run4',4)]
+scope_config = [('scope-1-run11',4),('scope-2-run11',4)]
 
 # Choose segment
 segment = sys.argv[1]
@@ -60,7 +60,7 @@ times  = myevent.times
 fig, axs = plt.subplots(nrows=2, ncols=2, figsize = (8,6), sharex=True, sharey=True)
 
 #axs[0][0].set_ylim(-250,1500)
-axs[0][0].set_xlim(0,100)
+#axs[0][0].set_xlim(0,100)
 
 # Plot grey line at zero
 for row in axs:
@@ -131,7 +131,7 @@ for row in axs:
         col.axhline(120, linewidth=2.5, alpha=0.5, color='red', linestyle='--')
 
 #axs[0][0].set_ylim(-250,1500)
-axs[0][0].set_xlim(0,100)
+#axs[0][0].set_xlim(0,100)
 unm_col = 'green'
 
 # Plate 1

@@ -39,6 +39,7 @@ class Event:
         self.segment      = segment
         self.scope_config = scope_config
 
+
     def get_data(self):
         """
         Extracts the waveforms and time data from a given triggered event, or segment.
@@ -71,4 +72,12 @@ class Event:
 
         return None
 
+
+    def zero_baselines(self):
+
+        for num, row in enumerate(self.data):
+            bl = fn.find_baseline(row)[0]
+            wf = row - bl
+            self.data[num] = wf
+        return None
 

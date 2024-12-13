@@ -1,3 +1,16 @@
+# ==========
+# delta_t.py
+# ==========
+#
+# The following script takes the data measurements from Calib/Position
+# in order to calculate the conversion from a measured delta-t on a 
+# triggered scintillator plate to the position of the event on that plate.
+#
+# Plots are written onto the corresponding pdf 'delta_t.pdf'.
+#
+# Plots are also saved as .png images in /plt directory.
+
+
 import os
 import sys
 import numpy as np
@@ -40,6 +53,7 @@ pdf      = PdfPages(pdf_path)
 dir_path = 'Calib/Position'
 run_path = os.path.join(lcd_path, dir_path)
 
+# find_peak kwargs
 thresh=120
 ROI=(640,880)
 sigma=2
@@ -70,6 +84,23 @@ def get_dt(scope_config, method = 'fwhm'):
             wf1 = mydata[2]
             wf2 = mydata[3]
 
+            #
+            a   = np.argmin(np.abs(times[0] - 0))
+            b   = np.argmin(np.abs(times[0] - 100))
+
+            p1_idx,p1_val = fn.get_first_peak(wf1, threshold = 140, ROI=(a,b))
+            p2_idx,p2_val = fn.get_first_peak(wf2, threshold = 140, ROI=(a,b))
+            risetime1     = fn.get_risetime(t, wf1, p1_idx)
+            risetime2     = fn.get_risetime(t, wf2, p2_idx)
+
+            if p1_idx and p2_idx != None:
+                dt = np.round(risetime1 - risetime2, 2)
+                dt_arr.append(dt)
+            else:
+                pass
+            #
+
+            """
             # Find first relevant peak
             peak1_idx, egress_idx1 = fn.find_peak(wf1, threshold=thresh, ROI=ROI)
             peak2_idx, egress_idx2 = fn.find_peak(wf2, threshold=thresh, ROI=ROI)
@@ -81,6 +112,7 @@ def get_dt(scope_config, method = 'fwhm'):
                 elif method == 'fwhm':
                     dt = times[0][egress_idx1] - times[0][egress_idx2]
                     dt_arr.append(dt)
+            """
 
             seg += 1
         except:
@@ -103,7 +135,7 @@ def plot_dist(ax, data, p0, label = None):
 
     x_vals = np.linspace(-15,15,200)
     #ax.scatter(x, y, s=1)
-    ax.plot(x_vals, gaussian(x_vals, *popt), label=label)
+    ax.plot(x_vals, gaussian(x_vals, *popt), label=label, alpha = 0.8)
 
     return popt
 
@@ -114,7 +146,7 @@ bins   = np.arange(-21,21,2)
 m_arr = []
 s_arr = []
 
-fig, ax = plt.subplots(figsize=(5,3))
+fig, ax = plt.subplots(figsize=(6,3.5))
 
 dt1 = get_dt([('dt-run1',4)], method = method)
 dt2 = get_dt([('dt-run2',4)], method = method)
@@ -161,6 +193,7 @@ ax.set_ylabel("Frequency")
 ax.set_title(r"Distribution of $\Delta t$ as a Function of Position")
 
 ax.grid('on', alpha = 0.5)
+ax.tick_params(axis='x', which='minor')
 
 
 fig.tight_layout()
@@ -173,24 +206,33 @@ plt.savefig(os.path.join(plt_path, 'dt_dist.png'), dpi=350)
 
 plt.close()
 
-
+# Set plot x-axis: data point from scint plate (cm)
 pos = [24, 48, 72, 96, 120]
-#dts = [-7.17, -2.74, 0.15, 3.43, 6.99]
-#sigs = [2.35, 4.9, 2.51, 2.86, 2.78]
 
-fig, ax = plt.subplots(figsize=(5,3))
+# Set plot params
+fmt='o'
+capsize=6.5
+capthick=1.5
+labels = ['L', 'CL', 'C', 'CR', 'R']
+
+
+fig, ax = plt.subplots(figsize=(6,3.5))
 
 popt, pcov = scipy.optimize.curve_fit(linear, pos, m_arr, p0 = [1, -10], sigma=s_arr)
-ax.errorbar(pos,m_arr, yerr=s_arr, fmt='o', capsize=5, label = 'Calibration')
+for i in range(5):
+    ax.errorbar(pos[i],m_arr[i], yerr=s_arr[i], fmt=fmt, capsize=capsize, label = labels[i], capthick=capthick)
 
 x_vals = np.linspace(0,144, 100)
-ax.plot(x_vals, linear(x_vals, *popt), color = 'darkblue', label = 'Linear Fit')
+ax.plot(x_vals, linear(x_vals, *popt), color = 'black', label = 'Linear Fit')
 
 ax.set_xlabel('Position Along Plate [cm]')
 ax.set_ylabel(r'$\Delta t$ [ns]')
 ax.set_title(r'Position-$\Delta t$ Conversion')
 
 ax.grid('on', alpha = 0.5)
+ax.tick_params(axis='x', which='minor')
+
+ax.legend()
 
 fig.tight_layout()
 
@@ -198,5 +240,20 @@ plt.savefig(os.path.join(plt_path, 'position-dt_conversion.png'), dpi=350)
 
 pdf.savefig()
 plt.close()
+
+# =======================
+# SAVE LINEAR FIT TO JSON
+# =======================
+json_path = os.path.join(out_path, 't-x-conv.json')
+with open(json_path, 'w') as json:
+    json.write('{\n')
+    json.write(f'\"popt\": [{popt[0]}, {popt[1]}], \n')
+    json.write(f'\"pcov\": [[{pcov[0][0]}, {pcov[0][1]}], [{pcov[1][0]}, {pcov[1][1]}]] \n')
+    json.write('}')
+
+
+# ======================
+# END OF SCRIPT PROTOCOL
+# ======================
 
 pdf.close()

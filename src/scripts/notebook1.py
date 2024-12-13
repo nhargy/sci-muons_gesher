@@ -39,7 +39,7 @@ then do some analysis on it.
 """
 
 # Define path to pdf
-pdf_path      = os.path.join(out_path, 'example2.pdf')
+pdf_path      = os.path.join(out_path, 'notebook1.pdf')
 
 # Initialise pdf
 pdf           = PdfPages(pdf_path)
@@ -72,35 +72,36 @@ times  = myevent.times    # the x-axis time values, one array for each scope
 # Analysis
 # ==========
 
+# Correct baseline
+for num, row in enumerate(mydata):
+    bl = fn.find_baseline(row)[0]
+    wf = row - bl
+    mydata[num] = wf
+
 t   = times[0]
-wf1 = mydata[2]
-wf2 = mydata[3]
+wf1 = mydata[0]
+wf2 = mydata[1]
 
-bl_mean1, bl_std1, wf1_smooth, mask1 = fn.find_baseline(wf1)
-bl_mean2, bl_std2, wf2_smooth, mask2 = fn.find_baseline(wf2)
+a   = np.argmin(np.abs(t - -50))
+b   = np.argmin(np.abs(t - 75))
 
-wf1_smooth = wf1_smooth - bl_mean1
-wf2_smooth = wf2_smooth - bl_mean2
+p1_idx,p1_val = fn.get_first_peak(wf1, threshold = 140, ROI=(a,b))
+p2_idx,p2_val = fn.get_first_peak(wf2, threshold = 140, ROI=(a,b))
+risetime1     = fn.get_risetime(t, wf1, p1_idx)
+risetime2     = fn.get_risetime(t, wf2, p2_idx)
 
-wf1_masked = np.ma.array(wf1_smooth, mask=mask1)
-wf2_masked = np.ma.array(wf2_smooth, mask=mask2)
+dt = np.round(risetime1 - risetime2, 2)
 
-# Plot
-fig, ax = plt.subplots(figsize=(7,4))
+fig, ax = plt.subplots()
 
-ax.plot(t,wf1_smooth, label=rf'Ch1')  #: {bl_mean1}$\pm${bl_std1}')
-ax.plot(t,wf2_smooth, label=rf'Ch2')  #: {bl_mean2}$\pm${bl_std2}')
+ax.plot(t, wf1)
+ax.plot(t, wf2)
+ax.axvline(risetime1, color = 'blue', linewidth = 0.8)
+ax.axvline(risetime2, color = 'orange', linewidth = 0.8)
 
-ax.plot(t,wf1_masked, color='green')
-ax.plot(t,wf2_masked, color='lawngreen')
-ax.set_title(f'{dir_path}; Segment {segment}')
-ax.set_xlabel('Time [ns]')
-ax.set_ylabel('Voltage [mV]')
-ax.axhline(0, linewidth = 5, color = 'grey', alpha = 0.35)
+ax.set_xlim(-50,50)
 
-#ax.set_ylim(-20,20)
-
-fig.legend()
+ax.set_title(rf'$\Delta t = ${dt}ns', fontsize=20)
 
 # Format for pdf view
 fig.tight_layout()
@@ -109,57 +110,5 @@ fig.tight_layout()
 pdf.savefig()
 plt.close()
 
-# ==================
-# Get ingress index
-# ==================
-"""
-wf = myevent.data[2]
-mask = np.zeros(len(wf))
-idxs, dicts = scipy.signal.find_peaks(wf, width=5, distance=8, prominence=0.02)
-
-fig, ax = plt.subplots(figsize=(7,4))
-ax.plot(t, wf, color='red', label = 'Masked')
-
-#ax.set_ylim(-0.1,0.2)
-
-for num, idx in enumerate(idxs):
-    lb = dicts['left_bases'][num]
-    rb = dicts['right_bases'][num]
-    width = dicts['widths'][num]
-
-    c = 1.5
-
-    if idx < int(c*width):
-        left = t[0]
-        left_idx = 0
-    else:
-        left = int(t[idx - int(c*width)])
-        left_idx = idx - int(c*width)
-    try:
-        right = int(t[idx + int(c*width)])
-        right_idx = idx + int(c*width)
-    except:
-        right = int(t[-1])
-        right_idx = -1
-
-    ax.axvline(t[idx], color = 'grey', linestyle = '--')
-    ax.axvspan(left, right, alpha = 0.2, color = 'red')
-
-    mask[left_idx:right_idx]=1
-
-mask[int((len(t)/2)-1):]=1
-
-bl_wf = np.ma.array(wf, mask=mask)
-bl_mean = np.round(np.nanmean(bl_wf),5)
-
-ax.plot(t, bl_wf, color='green', label='Baseline')
-
-ax.set_title(f'Detected Peaks: {len(idxs)}, Baseline Mean: {bl_mean}V')
-fig.legend()
-fig.tight_layout()
-pdf.savefig()
-plt.close()
-
-"""
 # End entire script in closing pdf object so it can refresh
 pdf.close()
