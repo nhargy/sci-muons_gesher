@@ -134,7 +134,6 @@ def plot_dist(ax, data, p0, label = None):
     popt, pcov = scipy.optimize.curve_fit(gaussian, x, y, p0 = p0)
 
     x_vals = np.linspace(-15,15,200)
-    #ax.scatter(x, y, s=1)
     ax.plot(x_vals, gaussian(x_vals, *popt), label=label, alpha = 0.8)
 
     return popt

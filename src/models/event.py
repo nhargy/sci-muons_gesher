@@ -39,6 +39,45 @@ class Event:
         self.segment      = segment
         self.scope_config = scope_config
 
+        # Structure risetime and dt matrices
+        self.struct_risetime_mtx()
+
+    def struct_risetime_mtx(self):
+        """
+        Given self.scope_config, this function create an np.nan numpy matrix
+        in the shape of the experiment. For example, scope_config = [('scope-1', 4),('scope-2',4)]
+        means that there are two scopes with 4 channels each, which in turn means two scintillator
+        plates per scope. The matrix shape will then be ((4, 2)).
+
+        Args:
+            None
+        Returns:
+            None
+            => Creates or upates self.risetime_mtx.
+        """
+        if len(self.scope_config) == 2:
+            mtx = [[],[]]
+        elif len(self.scope_config) == 1:
+            mtx = [[]]
+
+        dt_len = 0
+
+        for num, scope in enumerate(mtx):
+            ch_num = self.scope_config[num][1]
+            plate_num = int(ch_num/2)
+            for plate in range(plate_num):
+                mtx[num].append([np.nan, np.nan])
+                dt_len += 1
+
+        risetime_mtx = np.array(mtx)
+        dt_arr       = np.empty(dt_len)
+        dt_arr[:]    = np.nan
+
+        self.risetime_mtx = risetime_mtx
+        self.dt_arr       = dt_arr
+
+        return None
+
 
     def get_data(self):
         """
@@ -74,7 +113,14 @@ class Event:
 
 
     def zero_baselines(self):
+        """
+        <Decription>
 
+        Args:
+
+        Returns:
+
+        """
         for num, row in enumerate(self.data):
             bl = fn.find_baseline(row)[0]
             wf = row - bl

@@ -205,6 +205,7 @@ def get_risetime(t, wf, peak_idx, fraction=0.12):
 
     
 
+# === PHASING OUT === #
 
 def find_peak(wf, threshold, ROI, sigma=2, min_val=50, div=8):
 
