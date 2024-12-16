@@ -179,7 +179,7 @@ def get_first_peak(wf, threshold, ROI, min_val=50, smooth=True, sigma=2):
         return None, None
 
 
-def get_risetime(t, wf, peak_idx, fraction=0.12):
+def get_risetime(t, wf, peak_idx, ROI, fraction=0.12, const = None):
     """
     <Description>
 
@@ -188,11 +188,18 @@ def get_risetime(t, wf, peak_idx, fraction=0.12):
     Returns:
     """
     peak_val = wf[peak_idx]
-    rise_val = peak_val * fraction
+    if const != None:
+        rise_val = const
+    else:
+        rise_val = peak_val * fraction
+    
 
+    a = np.argmin(np.abs(t - ROI[0]))
+    b = np.argmin(np.abs(t - ROI[1]))
+    ROI_idx = (a,b)
     # Generate inverse and reversed interpolated function up to peak
-    t_cut    = t[:peak_idx][::-1]
-    wf_cut   = wf[:peak_idx][::-1]
+    t_cut    = t[a:peak_idx][::-1]
+    wf_cut   = wf[a:peak_idx][::-1]
     f        = interpolate.interp1d(wf_cut, t_cut)
 
     risetime  = f(rise_val) 
@@ -220,7 +227,7 @@ def find_peak(wf, threshold, ROI, sigma=2, min_val=50, div=8):
         if fwhm < min_val:
             fwhm = min_val
 
-        egress_idx     = np.where(np.logical_and(wf_cut<fwhm+30, wf_cut>fwhm-30))[0]
+        egress_idx     = np.where(np.logical_and(wf_cut<fwhm+40, wf_cut>fwhm-40))[0]
         egress_idx     = ROI[0] + np.min(egress_idx)
     except:
         peak_idx       = None

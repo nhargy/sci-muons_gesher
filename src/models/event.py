@@ -1,6 +1,8 @@
 import os
 import sys
 import numpy as np
+import json
+import scipy
 
 # Get current working directory
 cwd        = os.getcwd()
@@ -127,3 +129,96 @@ class Event:
             self.data[num] = wf
         return None
 
+
+    def calc_risetime_mtx(self, ROI, threshold, fraction): # would all be self.<property>
+        """
+        Calculates the risetime of each peak on each scintillator plate, if it exists.
+
+        Args:
+            
+        Returns:
+            None
+            => Updates self.risetime_mtx and self.dt_arr property.
+        """
+        dt_meta = []
+        wf_idx = 0
+        for scope_idx, scope in enumerate(self.risetime_mtx):
+            t = self.times[scope_idx]
+            a = np.argmin(np.abs(t - ROI[0]))
+            b = np.argmin(np.abs(t - ROI[1]))
+            ROI_idx = (a,b)
+            print(ROI_idx)
+            for plate_idx, plate in enumerate(scope):
+                wf1 = self.data[wf_idx]
+                wf2 = self.data[wf_idx+1]
+
+                p1, _ = fn.get_first_peak(wf1, threshold=threshold, ROI=ROI_idx)
+                p2, _ = fn.get_first_peak(wf2, threshold=threshold, ROI=ROI_idx)
+
+
+
+                if p1 and p2 != None:
+                    fraction  = fraction
+                    rt1 = fn.get_risetime(t, wf1, p1, ROI, fraction=fraction)
+                    rt2 = fn.get_risetime(t, wf2, p2, ROI, fraction=fraction)
+
+                    self.risetime_mtx[scope_idx][plate_idx][0] = rt1
+                    self.risetime_mtx[scope_idx][plate_idx][1] = rt2
+
+                    tup1 = (p1, rt1)
+                    tup2 = (p2, rt2)
+
+                    dt = rt1 - rt2
+                    self.dt_arr[int(wf_idx/2)] = dt
+                    dt_meta.append([tup1, tup2])
+                else:
+                    tup_nan = (np.nan, np.nan)
+                    dt_meta.append([tup_nan, tup_nan])
+
+                wf_idx += 2
+        
+        self.dt_meta = dt_meta
+
+        return None
+
+
+    def calc_pos_arr(self, filepath, x_min=0, x_max=144, max_err=25):
+        """
+        Using .json linear fit file, converts dt array to position array.
+
+        Args:
+
+        Returns:
+            None
+            => Creates or updates Event.pos_arr property. 
+        """
+        with open(filepath, 'r') as f:
+            content = json.loads(f.read())
+            popt    = content['popt']
+        
+        # Linear function
+        def linear(x, m, c):
+            return m*x + c
+
+        # Generate linear array
+        x_vals = np.linspace(-100,244)
+        y_vals = linear(x_vals, *popt)
+
+        f_inv = scipy.interpolate.interp1d(y_vals, x_vals, kind='linear')
+
+        # Create the position array
+        x_arr = np.empty(len(self.dt_arr))
+        x_arr[:] = np.nan
+
+        for idx, dt in enumerate(self.dt_arr):
+            x = f_inv(dt)
+            if (x >= x_min) and (x <= x_max):
+                x_arr[idx] = x
+            elif (x < x_min) and (x > x_min - max_err):
+                x_arr[idx] = x_min
+            elif (x > x_max) and (x < x_max + max_err):
+                x_arr[idx] = x_max
+
+        self.x_arr = x_arr
+
+        return None
