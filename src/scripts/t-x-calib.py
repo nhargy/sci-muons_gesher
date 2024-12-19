@@ -78,8 +78,8 @@ def get_dt_arr(scope_config, fraction):
             if p1 and p2 != None:
                 # Get risetimes
                 fraction = fraction
-                risetime1 = fn.get_risetime(t, wf1, p1, fraction=fraction)
-                risetime2 = fn.get_risetime(t, wf2, p2, fraction=fraction)
+                risetime1 = fn.get_risetime(t, wf1, p1, ROI, fraction=fraction)
+                risetime2 = fn.get_risetime(t, wf2, p2, ROI, fraction=fraction)
 
                 dt = risetime1 - risetime2
                 dt_arr.append(dt)
@@ -122,6 +122,7 @@ s_arr = []
 popt = get_dist(1, 3, bins, [50, -7, 2])
 ax.plot(x_vals, gaussian(x_vals, *popt), label='L')
 m_arr.append(popt[1]); s_arr.append(popt[2])
+
 
 popt = get_dist(4, 6, bins, [50, -3, 2])
 ax.plot(x_vals, gaussian(x_vals, *popt), label='CL')

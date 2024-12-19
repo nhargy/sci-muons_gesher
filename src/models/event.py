@@ -2,7 +2,7 @@ import os
 import sys
 import numpy as np
 import json
-import scipy
+from scipy.interpolate import interp1d
 
 # Get current working directory
 cwd        = os.getcwd()
@@ -23,8 +23,8 @@ except:
 
 class Event:
     """
-    Event object of the waveform measured from one triggered event
-    on multiple scopes.
+    Event object containig all measured data and metadata from a 
+    triggered scope event, together with derived values and properties.
     """
     def __init__(self, dirpath, segment, scope_config):
         """
@@ -41,10 +41,14 @@ class Event:
         self.segment      = segment
         self.scope_config = scope_config
 
-        # Structure risetime and dt matrices
-        self.struct_risetime_mtx()
+        self.risetime_matrix = None
+        self.dt_arr          = None
+        self.x_arr           = None
 
-    def struct_risetime_mtx(self):
+        # Structure risetime and dt matrices
+        self.struct_risetime_matrix()
+
+    def struct_risetime_matrix(self):
         """
         Given self.scope_config, this function create an np.nan numpy matrix
         in the shape of the experiment. For example, scope_config = [('scope-1', 4),('scope-2',4)]
@@ -55,30 +59,28 @@ class Event:
             None
         Returns:
             None
-            => Creates or upates self.risetime_mtx.
+            => Updates self.risetime_mtx.
         """
         if len(self.scope_config) == 2:
-            mtx = [[],[]]
+            matrix = [[],[]]
         elif len(self.scope_config) == 1:
-            mtx = [[]]
+            matrix = [[]]
 
         dt_len = 0
 
-        for num, scope in enumerate(mtx):
+        for num, scope in enumerate(matrix):
             ch_num = self.scope_config[num][1]
             plate_num = int(ch_num/2)
             for plate in range(plate_num):
-                mtx[num].append([np.nan, np.nan])
+                matrix[num].append([np.nan, np.nan])
                 dt_len += 1
 
-        risetime_mtx = np.array(mtx)
+        risetime_matrix = np.array(matrix)
         dt_arr       = np.empty(dt_len)
         dt_arr[:]    = np.nan
 
-        self.risetime_mtx = risetime_mtx
+        self.risetime_matrix = risetime_matrix
         self.dt_arr       = dt_arr
-
-        return None
 
 
     def get_data(self):
@@ -111,8 +113,6 @@ class Event:
         self.data  = data
         self.times = times
 
-        return None
-
 
     def zero_baselines(self):
         """
@@ -127,7 +127,6 @@ class Event:
             bl = fn.find_baseline(row)[0]
             wf = row - bl
             self.data[num] = wf
-        return None
 
 
     def calc_risetime_mtx(self, ROI, threshold, fraction): # would all be self.<property>
@@ -142,7 +141,7 @@ class Event:
         """
         dt_meta = []
         wf_idx = 0
-        for scope_idx, scope in enumerate(self.risetime_mtx):
+        for scope_idx, scope in enumerate(self.risetime_matrix):
             t = self.times[scope_idx]
             a = np.argmin(np.abs(t - ROI[0]))
             b = np.argmin(np.abs(t - ROI[1]))
@@ -162,8 +161,8 @@ class Event:
                     rt1 = fn.get_risetime(t, wf1, p1, ROI, fraction=fraction)
                     rt2 = fn.get_risetime(t, wf2, p2, ROI, fraction=fraction)
 
-                    self.risetime_mtx[scope_idx][plate_idx][0] = rt1
-                    self.risetime_mtx[scope_idx][plate_idx][1] = rt2
+                    self.risetime_matrix[scope_idx][plate_idx][0] = rt1
+                    self.risetime_matrix[scope_idx][plate_idx][1] = rt2
 
                     tup1 = (p1, rt1)
                     tup2 = (p2, rt2)
@@ -179,8 +178,6 @@ class Event:
         
         self.dt_meta = dt_meta
 
-        return None
-
 
     def calc_pos_arr(self, filepath, x_min=0, x_max=144, max_err=25):
         """
@@ -193,8 +190,8 @@ class Event:
             => Creates or updates Event.pos_arr property. 
         """
         with open(filepath, 'r') as f:
-            content = json.loads(f.read())
-            popt    = content['popt']
+            popt = json.load(f)['popt']
+            #popt    = content['popt']
         
         # Linear function
         def linear(x, m, c):
@@ -204,7 +201,7 @@ class Event:
         x_vals = np.linspace(-100,244)
         y_vals = linear(x_vals, *popt)
 
-        f_inv = scipy.interpolate.interp1d(y_vals, x_vals, kind='linear')
+        f_inv = interp1d(y_vals, x_vals, kind='linear')
 
         # Create the position array
         x_arr = np.empty(len(self.dt_arr))
@@ -221,4 +218,3 @@ class Event:
 
         self.x_arr = x_arr
 
-        return None

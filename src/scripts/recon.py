@@ -69,7 +69,7 @@ fraction  = 0.25
 
 event.calc_risetime_mtx(ROI, threshold, fraction)
 event.calc_pos_arr(os.path.join(out_path, 't-x-conv.json'))
-rtm = event.risetime_mtx
+rtm = event.risetime_matrix
 dta = event.dt_arr
 xa  = event.x_arr
 dtm = event.dt_meta

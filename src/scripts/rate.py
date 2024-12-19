@@ -77,7 +77,7 @@ n, bin_edges, patches = ax1.hist(diff, bins=bins_tlv, edgecolor='black', density
 x_mid = bin_edges[:-1] + np.diff(bin_edges)/2
 
 popt, pcov = scipy.optimize.curve_fit(dec_exp, x_mid, n, p0=[10, 0.025])
-ax1.scatter(x_mid, n, color='black')
+#ax1.scatter(x_mid, n, color='black')
 ax1.plot(x_mid, dec_exp(x_mid, *popt), color = 'black', label = rf'$\tau = $ {np.round(popt[1],4)} sec')
 
 ax1.legend()
@@ -98,7 +98,7 @@ n, bin_edges, patches = ax2.hist(TLV1_diffs, bins=bins_tlv, edgecolor='black', d
 x_mid = bin_edges[:-1] + np.diff(bin_edges)/2
 
 popt, pcov = scipy.optimize.curve_fit(dec_exp, x_mid, n, p0=[10, 0.025])
-ax2.scatter(x_mid, n, color='black')
+#ax2.scatter(x_mid, n, color='black')
 ax2.plot(x_mid, dec_exp(x_mid, *popt), color = 'black', label = rf'$\tau = $ {np.round(popt[1],4)} sec')
 
 ax2.legend()
@@ -122,7 +122,7 @@ n, bin_edges,patches = ax3.hist(diffs, bins=bins_vs, edgecolor='black', density=
 x_mid = bin_edges[:-1] + np.diff(bin_edges)/2
 
 popt, pcov = scipy.optimize.curve_fit(dec_exp, x_mid, n, p0=[0.001, 100])
-ax3.scatter(x_mid, n, color='black')
+#ax3.scatter(x_mid, n, color='black')
 ax3.plot(x_mid, dec_exp(x_mid, *popt), color='black', label = rf'$\tau = $ {np.round(popt[1],1)} sec')
 
 ax3.legend()
@@ -147,22 +147,24 @@ n, bin_edges,patches = ax4.hist(diffs, bins=bins_vs, edgecolor='black', density=
 x_mid = bin_edges[:-1] + np.diff(bin_edges)/2
 
 popt, pcov = scipy.optimize.curve_fit(dec_exp, x_mid, n, p0=[0.001, 100])
-ax4.scatter(x_mid, n, color='black')
+#ax4.scatter(x_mid, n, color='black')
 ax4.plot(x_mid, dec_exp(x_mid, *popt), color='black', label = rf'$\tau = $ {np.round(popt[1],1)} sec')
 
 ax4.legend()
 
 
-ax1.set_title('TLV0')
-ax2.set_title('TLV1')
-ax3.set_title('VS0')
-ax4.set_title('VS1')
+ax1.set_title('TLV0 (N-S); 1,000 events')
+ax2.set_title('TLV1 (E-W); 10,000 events')
+ax3.set_title('VS0 (N-S); 1,631 events')
+ax4.set_title('VS1 (E-W); 3,076 events')
 
 fig.supxlabel("Time Between Events [seconds]")
+fig.supylabel("Normalised Frequency")
 
 fig.tight_layout()
 
 pdf.savefig()
+plt.savefig(os.path.join(plt_path, 'char_time.png'), dpi=350)
 plt.close()
 
 
